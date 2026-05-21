@@ -37,16 +37,18 @@ export interface SolveResponse {
   ok: boolean;
   error?: string;
   // Resultados (kN, kN·m, m)
-  displacements?: number[][];   // por nodo [v, theta]
-  reactions?: number[][];       // por apoyo [R_y, M]
+  displacements?: number[][];   // por nodo [v, theta] o [u, v] o [u, v, theta]
+  reactions?: number[][];       // por apoyo [R_y, M] o [Rx, Ry] o [Rx, Ry, M]
   member_forces?: {
     spanIndex: number;
     V_i: number;
     M_i: number;
     V_j: number;
     M_j: number;
+    N?: number;          // axial (armadura/pórtico)
+    state?: "Tracción" | "Compresión" | "Nulo";
   }[];
-  // Matrices intermedias (para tab Matrices)
+  // Matrices intermedias
   K_global?: number[][];
   F_global?: number[];
   diagrams?: {
@@ -55,4 +57,55 @@ export interface SolveResponse {
     V: number[];
     M: number[];
   }[];
+}
+
+// =========================================================================
+// Armadura 2D (truss) - 2 GDL por nodo (u, v), barras solo axiales
+// =========================================================================
+export interface TrussNode {
+  id: string;
+  x: number;
+  y: number;
+  fixed_u: boolean;
+  fixed_v: boolean;
+  fx: number;
+  fy: number;
+}
+export interface TrussElement {
+  id: string;
+  nodeI: string;
+  nodeJ: string;
+  E: number;       // GPa
+  A: number;       // cm²
+}
+export interface TrussModel {
+  nodes: TrussNode[];
+  elements: TrussElement[];
+}
+
+// =========================================================================
+// Pórtico 2D (frame) - 3 GDL por nodo (u, v, theta)
+// =========================================================================
+export interface FrameNode {
+  id: string;
+  x: number;
+  y: number;
+  fixed_u: boolean;
+  fixed_v: boolean;
+  fixed_theta: boolean;
+  fx: number;
+  fy: number;
+  m: number;
+}
+export interface FrameElement {
+  id: string;
+  nodeI: string;
+  nodeJ: string;
+  E: number;       // GPa
+  A: number;       // cm²
+  I: number;       // cm⁴
+}
+export interface FrameModel {
+  nodes: FrameNode[];
+  elements: FrameElement[];
 }
