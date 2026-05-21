@@ -1,16 +1,13 @@
 import type { BeamModel, SolveResponse } from "./types";
+import { solveBeamLocal } from "./beam-solver";
 
+/**
+ * Resolución del modelo de viga.
+ * Corre 100% en el navegador (cliente): no hay backend.
+ */
 export async function solveBeam(model: BeamModel): Promise<SolveResponse> {
   try {
-    const res = await fetch("/api/solve_beam", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(model),
-    });
-    if (!res.ok) {
-      return { ok: false, error: `HTTP ${res.status}: ${await res.text()}` };
-    }
-    return await res.json();
+    return solveBeamLocal(model);
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
