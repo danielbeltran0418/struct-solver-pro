@@ -82,22 +82,10 @@ export function GeometricView({
           else if (mf?.state === "Compresión") stroke = "#dc2626";
         }
         return (
-          <g key={e.id}>
-            <line x1={px(ni.x)} y1={py(ni.y)}
-                  x2={px(nj.x)} y2={py(nj.y)}
-                  stroke={stroke} strokeWidth={strokeWidth} />
-            {/* Rótulas internas (círculo blanco con borde en extremos liberados) */}
-            {e.releaseI && (
-              <circle cx={interp(px(ni.x), px(nj.x), 0.08)}
-                      cy={interp(py(ni.y), py(nj.y), 0.08)}
-                      r={5} fill="white" stroke={stroke} strokeWidth={2} />
-            )}
-            {e.releaseJ && (
-              <circle cx={interp(px(ni.x), px(nj.x), 0.92)}
-                      cy={interp(py(ni.y), py(nj.y), 0.92)}
-                      r={5} fill="white" stroke={stroke} strokeWidth={2} />
-            )}
-          </g>
+          <line key={e.id}
+                x1={px(ni.x)} y1={py(ni.y)}
+                x2={px(nj.x)} y2={py(nj.y)}
+                stroke={stroke} strokeWidth={strokeWidth} />
         );
       })}
 
@@ -130,6 +118,33 @@ export function GeometricView({
           {renderSupport(n, px(n.x), py(n.y))}
         </g>
       ))}
+
+      {/* Rótulas internas — círculo blanco sobre el nodo, encima de todo */}
+      {elements.flatMap((e) => {
+        const i = idIndex.get(e.nodeI)!;
+        const j = idIndex.get(e.nodeJ)!;
+        const ni = nodes[i], nj = nodes[j];
+        let stroke = "#0d9488";
+        if (results?.ok && results.member_forces) {
+          const mf = results.member_forces.find((m) => m.spanIndex === elements.indexOf(e));
+          if (mf?.state === "Tracción") stroke = "#16a34a";
+          else if (mf?.state === "Compresión") stroke = "#dc2626";
+        }
+        const circles: React.ReactNode[] = [];
+        if (e.releaseI) {
+          circles.push(
+            <circle key={`ri-${e.id}`} cx={px(ni.x)} cy={py(ni.y)}
+                    r={5} fill="white" stroke={stroke} strokeWidth={2} />
+          );
+        }
+        if (e.releaseJ) {
+          circles.push(
+            <circle key={`rj-${e.id}`} cx={px(nj.x)} cy={py(nj.y)}
+                    r={5} fill="white" stroke={stroke} strokeWidth={2} />
+          );
+        }
+        return circles;
+      })}
 
       {/* Cargas nodales */}
       {nodes.map((n) => {
