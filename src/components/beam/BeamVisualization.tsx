@@ -37,7 +37,7 @@ export function BeamVisualization({ model }: { model: BeamModel }) {
           return (
             <g key={i}>
               <rect x={x1} y={padY - 4} width={x2 - x1} height={8}
-                    fill="#60a5fa" stroke="#2563eb" />
+                    fill="#5eead4" stroke="#0d9488" />
               <text x={(x1 + x2) / 2} y={padY + 20} textAnchor="middle"
                     fontSize="11" fill="#64748b">
                 T{i + 1} ({sp.L} m)
@@ -54,7 +54,7 @@ export function BeamVisualization({ model }: { model: BeamModel }) {
             <g key={s.id}>
               {renderSupport(s.type, x, y)}
               <text x={x} y={padY - 12} textAnchor="middle"
-                    fontSize="11" fontWeight="600" fill="#2563eb">
+                    fontSize="11" fontWeight="600" fill="#0d9488">
                 {s.id}
               </text>
             </g>
@@ -149,13 +149,13 @@ function renderSupport(type: SupportType, x: number, y: number) {
     return (
       <g>
         <polygon points={`${x},${y} ${x - 10},${y + 16} ${x + 10},${y + 16}`}
-                 fill="#1d4ed8" />
+                 fill="#0f766e" />
         <line x1={x - 14} y1={y + 16} x2={x + 14} y2={y + 16}
-              stroke="#1d4ed8" strokeWidth="2" />
+              stroke="#0f766e" strokeWidth="2" />
         {Array.from({ length: 5 }).map((_, k) => (
           <line key={k} x1={x - 12 + k * 6} y1={y + 16}
                 x2={x - 16 + k * 6} y2={y + 22}
-                stroke="#1d4ed8" strokeWidth="1" />
+                stroke="#0f766e" strokeWidth="1" />
         ))}
       </g>
     );
@@ -164,22 +164,22 @@ function renderSupport(type: SupportType, x: number, y: number) {
     return (
       <g>
         <polygon points={`${x},${y} ${x - 10},${y + 12} ${x + 10},${y + 12}`}
-                 fill="#1d4ed8" />
-        <circle cx={x - 5} cy={y + 17} r={3} fill="#1d4ed8" />
-        <circle cx={x + 5} cy={y + 17} r={3} fill="#1d4ed8" />
+                 fill="#0f766e" />
+        <circle cx={x - 5} cy={y + 17} r={3} fill="#0f766e" />
+        <circle cx={x + 5} cy={y + 17} r={3} fill="#0f766e" />
         <line x1={x - 14} y1={y + 22} x2={x + 14} y2={y + 22}
-              stroke="#1d4ed8" strokeWidth="2" />
+              stroke="#0f766e" strokeWidth="2" />
       </g>
     );
   }
   if (type === "EMP") {
     return (
       <g>
-        <rect x={x - 12} y={y} width={24} height={4} fill="#1d4ed8" />
+        <rect x={x - 12} y={y} width={24} height={4} fill="#0f766e" />
         {Array.from({ length: 6 }).map((_, k) => (
           <line key={k} x1={x - 12 + k * 5} y1={y + 4}
                 x2={x - 16 + k * 5} y2={y + 12}
-                stroke="#1d4ed8" strokeWidth="1.2" />
+                stroke="#0f766e" strokeWidth="1.2" />
         ))}
       </g>
     );

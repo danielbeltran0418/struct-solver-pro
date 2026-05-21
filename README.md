@@ -1,10 +1,10 @@
-# StructSolver Pro
+# Rigidez Lab
 
-Aplicación web de análisis estructural 2D: vigas continuas, armaduras 2D y pórticos 2D por Método Matricial de la Rigidez.
+Laboratorio web de análisis estructural 2D: vigas continuas, armaduras 2D y pórticos 2D por el Método Matricial de la Rigidez.
 
-- **Frontend:** Next.js 15 + React 19 + Tailwind
-- **Backend:** Python serverless functions (Vercel) con NumPy
-- **Deploy:** Vercel
+- **Stack:** Next.js 15 + React 19 + Tailwind
+- **Cálculo:** TypeScript puro en el navegador (sin backend, sin cold start)
+- **Deploy:** GitHub Pages (sitio estático)
 
 ## Desarrollo local
 
