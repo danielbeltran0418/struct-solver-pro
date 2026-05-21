@@ -1,5 +1,6 @@
 "use client";
 
+import { NumInput } from "@/components/shared/NumInput";
 import type { BeamModel, Load, NodeSupport, Span, SupportType } from "@/lib/types";
 
 const SUPPORT_LABELS: Record<SupportType, string> = {
@@ -94,6 +95,8 @@ export function BeamConfig({
                 <th className="text-left pb-1">E (GPA)</th>
                 <th className="text-left pb-1">I (CM⁴)</th>
                 <th className="text-left pb-1">EI (KN·M²)</th>
+                <th className="text-center pb-1" title="Rótula interna en extremo izquierdo">◯i</th>
+                <th className="text-center pb-1" title="Rótula interna en extremo derecho">◯j</th>
                 <th></th>
               </tr>
             </thead>
@@ -103,7 +106,7 @@ export function BeamConfig({
                 return (
                   <tr key={s.id} className="border-t border-slate-100">
                     <td className="py-1.5 pl-1 text-slate-500 font-medium">T{i + 1}</td>
-                    <td><Num value={s.L} onChange={(v) => updateSpan(i, { L: v })} /></td>
+                    <td><NumInput value={s.L} onChange={(v) => updateSpan(i, { L: v })} placeholder="L" /></td>
                     <td>
                       <select
                         value={s.material}
@@ -116,9 +119,19 @@ export function BeamConfig({
                         {Object.keys(MATERIALS).map((m) => <option key={m} value={m}>{m}</option>)}
                       </select>
                     </td>
-                    <td><Num value={s.E} onChange={(v) => updateSpan(i, { E: v })} /></td>
-                    <td><Num value={s.I} onChange={(v) => updateSpan(i, { I: v })} /></td>
+                    <td><NumInput value={s.E} onChange={(v) => updateSpan(i, { E: v })} placeholder="200" /></td>
+                    <td><NumInput value={s.I} onChange={(v) => updateSpan(i, { I: v })} placeholder="8356" /></td>
                     <td className="text-slate-500">{kFormat(EI)}</td>
+                    <td className="text-center">
+                      <input type="checkbox" className="accent-brand-500"
+                             checked={!!s.releaseI}
+                             onChange={(e) => updateSpan(i, { releaseI: e.target.checked })} />
+                    </td>
+                    <td className="text-center">
+                      <input type="checkbox" className="accent-brand-500"
+                             checked={!!s.releaseJ}
+                             onChange={(e) => updateSpan(i, { releaseJ: e.target.checked })} />
+                    </td>
                     <td>
                       <button
                         onClick={() => removeSpan(i)}
@@ -134,9 +147,9 @@ export function BeamConfig({
           </table>
         </div>
         <div className="flex items-center justify-between mt-3">
-          <label className="text-xs text-slate-500 flex items-center gap-1">
-            <input type="checkbox" className="accent-brand-500" /> EI simbólico
-          </label>
+          <p className="text-[10px] text-slate-400">
+            ◯i / ◯j: rótula interna en extremo del tramo (M = 0). No pueden estar en ambos extremos.
+          </p>
           <button
             onClick={addSpan}
             className="px-3 py-1 text-sm bg-brand-50 text-brand-700 rounded hover:bg-brand-100"
@@ -217,13 +230,13 @@ export function BeamConfig({
                   </td>
                   <td>
                     {(l.type === "puntual" || l.type === "momento") ? (
-                      <Num value={l.position ?? 0} onChange={(v) => updateLoad(i, { position: v })} />
+                      <NumInput value={l.position ?? 0} onChange={(v) => updateLoad(i, { position: v })} placeholder="x" />
                     ) : <span className="text-slate-400">—</span>}
                   </td>
                   <td>
-                    <Num value={l.magnitude} onChange={(v) => updateLoad(i, { magnitude: v })} />
+                    <NumInput value={l.magnitude} onChange={(v) => updateLoad(i, { magnitude: v })} placeholder="P/w" />
                     {l.type === "trapezoidal" && (
-                      <Num value={l.magnitude2 ?? 0} onChange={(v) => updateLoad(i, { magnitude2: v })} />
+                      <NumInput value={l.magnitude2 ?? 0} onChange={(v) => updateLoad(i, { magnitude2: v })} placeholder="w₂" />
                     )}
                   </td>
                   <td>
@@ -260,17 +273,6 @@ function Section({ title, accent, children }:
       </h3>
       {children}
     </section>
-  );
-}
-
-function Num({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  return (
-    <input
-      type="number"
-      value={value}
-      onChange={(e) => onChange(Number(e.target.value))}
-      className="w-20 bg-transparent border border-slate-200 rounded px-1.5 py-0.5 text-sm"
-    />
   );
 }
 

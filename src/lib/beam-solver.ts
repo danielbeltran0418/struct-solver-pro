@@ -11,6 +11,7 @@
  */
 
 import type { BeamModel, Load, SolveResponse, SupportType } from "./types";
+import { staticCondense } from "./linalg";
 
 const SUPPORT_RESTRAINTS: Record<SupportType, [boolean, boolean]> = {
   PIN:   [true,  false],
@@ -137,32 +138,58 @@ export function solveBeamLocal(model: BeamModel): SolveResponse {
   const nDof = nNodes * 2;
   const K = zeros(nDof);
   const F = Array(nDof).fill(0);
-  const spansData: { L: number; EI: number; dofMap: number[] }[] = [];
+  const spansData: {
+    L: number; EI: number; dofMap: number[];
+    keCondensed: number[][]; fEqCondensed: number[];
+    releaseI: boolean; releaseJ: boolean;
+  }[] = [];
 
-  // Ensamblaje de K
+  // ---------- Ensamblaje de K y F con condensación por rótula interna ----------
+  // Para cada tramo: armamos k_local 4×4 y f_eq 4×1, aplicamos condensación
+  // estática si hay rótulas internas (releaseI/releaseJ), luego ensamblamos.
   for (let i = 0; i < spans.length; i++) {
     const sp = spans[i];
     const L = sp.L;
     if (L <= 0) return { ok: false, error: `Tramo T${i + 1}: L debe ser > 0.` };
-    // E: GPa -> kN/m² (×1e6); I: cm⁴ -> m⁴ (×1e-8)
     const E_kN_m2 = sp.E * 1e6;
     const I_m4 = sp.I * 1e-8;
     const EI = E_kN_m2 * I_m4;
-    const ke = kLocal(EI, L);
+    let ke = kLocal(EI, L);
+
+    // f_eq de este tramo (suma de equivalentes de todas sus cargas)
+    let fEqElem = [0, 0, 0, 0];
+    for (const load of loads) {
+      if (load.spanIndex !== i) continue;
+      const eq = spanEquivLoad(load, L);
+      fEqElem = fEqElem.map((v, j) => v + eq[j]);
+    }
+
+    // GDL locales liberados (rotaciones en extremos articulados):
+    // - releaseI → libera θ_i en GDL local 1
+    // - releaseJ → libera θ_j en GDL local 3
+    const released: number[] = [];
+    if (sp.releaseI) released.push(1);
+    if (sp.releaseJ) released.push(3);
+    if (released.length === 2) {
+      return { ok: false, error: `Tramo T${i + 1}: no puede tener rótulas en ambos extremos (mecanismo).` };
+    }
+    if (released.length > 0) {
+      const cond = staticCondense(ke, fEqElem, released);
+      ke = cond.k;
+      fEqElem = cond.f;
+    }
+
     const dofMap = [2 * i, 2 * i + 1, 2 * (i + 1), 2 * (i + 1) + 1];
     for (let a = 0; a < 4; a++)
       for (let b = 0; b < 4; b++)
         K[dofMap[a]][dofMap[b]] += ke[a][b];
-    spansData.push({ L, EI, dofMap });
-  }
-
-  // F = cargas equivalentes
-  for (const load of loads) {
-    const si = load.spanIndex;
-    if (si < 0 || si >= spans.length) continue;
-    const eq = spanEquivLoad(load, spansData[si].L);
-    const dofMap = spansData[si].dofMap;
-    for (let a = 0; a < 4; a++) F[dofMap[a]] += eq[a];
+    for (let a = 0; a < 4; a++)
+      F[dofMap[a]] += fEqElem[a];
+    spansData.push({
+      L, EI, dofMap,
+      keCondensed: ke, fEqCondensed: fEqElem,
+      releaseI: !!sp.releaseI, releaseJ: !!sp.releaseJ,
+    });
   }
 
   // GDL libres/restringidos
@@ -204,25 +231,20 @@ export function solveBeamLocal(model: BeamModel): SolveResponse {
   const diagrams: NonNullable<SolveResponse["diagrams"]> = [];
 
   for (let i = 0; i < spansData.length; i++) {
-    const { L, EI, dofMap } = spansData[i];
+    const { L, dofMap, keCondensed, fEqCondensed, releaseI, releaseJ } = spansData[i];
     const u_e = dofMap.map((d) => U[d]);
-    const ke = kLocal(EI, L);
 
-    // Equivalentes totales del tramo
-    let f_eq_total = [0, 0, 0, 0];
-    for (const load of loads) {
-      if (load.spanIndex !== i) continue;
-      const eq = spanEquivLoad(load, L);
-      f_eq_total = f_eq_total.map((v, j) => v + eq[j]);
-    }
-
-    // f_internal = k·u - F_eq (matricial)
-    const ku = matMulVec(ke, u_e);
-    const fInt = ku.map((v, j) => v - f_eq_total[j]);
+    // f_internal = k_condensed·u - F_eq_condensed
+    // Esto da fuerzas internas consistentes con la condensación por rótula.
+    const ku = matMulVec(keCondensed, u_e);
+    const fInt = ku.map((v, j) => v - fEqCondensed[j]);
 
     // Convención de INGENIERÍA: M_eng = -M_matricial en el extremo izq.
+    // Si hay rótula en el extremo i, M_i = 0 por definición.
     const V_i = fInt[0];
-    const M_i = -fInt[1];
+    const M_i = releaseI ? 0 : -fInt[1];
+    // (M_j sigue saliendo del cálculo del diagrama, automáticamente correcto.)
+    void releaseJ;
 
     // Diagramas
     const N_POINTS = 41;

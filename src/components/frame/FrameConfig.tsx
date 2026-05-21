@@ -1,5 +1,6 @@
 "use client";
 
+import { NumInput } from "@/components/shared/NumInput";
 import type { FrameElement, FrameModel, FrameNode } from "@/lib/types";
 
 function genId(prefix: string) {
@@ -113,6 +114,8 @@ export function FrameConfig({
                 <th className="text-left pb-1">E (GPa)</th>
                 <th className="text-left pb-1">A (cm²)</th>
                 <th className="text-left pb-1">I (cm⁴)</th>
+                <th className="text-center pb-1" title="Rótula interna en extremo i (M=0)">◯i</th>
+                <th className="text-center pb-1" title="Rótula interna en extremo j (M=0)">◯j</th>
                 <th></th>
               </tr>
             </thead>
@@ -130,6 +133,16 @@ export function FrameConfig({
                   <td><Num value={e.E} onChange={(v) => updateElement(i, { E: v })} /></td>
                   <td><Num value={e.A} onChange={(v) => updateElement(i, { A: v })} /></td>
                   <td><Num value={e.I} onChange={(v) => updateElement(i, { I: v })} /></td>
+                  <td className="text-center">
+                    <input type="checkbox" className="accent-brand-500"
+                           checked={!!e.releaseI}
+                           onChange={(ev) => updateElement(i, { releaseI: ev.target.checked })} />
+                  </td>
+                  <td className="text-center">
+                    <input type="checkbox" className="accent-brand-500"
+                           checked={!!e.releaseJ}
+                           onChange={(ev) => updateElement(i, { releaseJ: ev.target.checked })} />
+                  </td>
                   <td>
                     <button onClick={() => removeElement(i)}
                             disabled={model.elements.length <= 1}
@@ -140,6 +153,9 @@ export function FrameConfig({
             </tbody>
           </table>
         </div>
+        <p className="text-[10px] text-slate-400 mt-2">
+          ◯i / ◯j: rótula interna (libera momento, M = 0 en ese extremo).
+        </p>
         <button onClick={addElement}
                 className="mt-2 px-3 py-1 text-sm bg-brand-50 text-brand-700 rounded hover:bg-brand-100">
           + Añadir barra
@@ -164,10 +180,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </section>
   );
 }
-function Num({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  return <input type="number" value={value} step="any"
-           onChange={(e) => onChange(Number(e.target.value))}
-           className="w-16 bg-transparent border border-slate-200 rounded px-1 py-0.5 text-sm" />;
+function Num(props: { value: number; onChange: (v: number) => void; placeholder?: string }) {
+  return <NumInput {...props}
+                   className="w-16 bg-transparent border border-slate-200 rounded px-1 py-0.5 text-sm focus:border-brand-500 focus:outline-none" />;
 }
 function Chk({ v, onChange }: { v: boolean; onChange: (v: boolean) => void }) {
   return <input type="checkbox" checked={v} onChange={(e) => onChange(e.target.checked)}

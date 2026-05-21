@@ -1,5 +1,6 @@
 "use client";
 
+import { NumInput } from "@/components/shared/NumInput";
 import type { TrussElement, TrussModel, TrussNode } from "@/lib/types";
 
 function genId(prefix: string) {
@@ -152,10 +153,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </section>
   );
 }
-function Num({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  return <input type="number" value={value} step="any"
-           onChange={(e) => onChange(Number(e.target.value))}
-           className="w-20 bg-transparent border border-slate-200 rounded px-1.5 py-0.5 text-sm" />;
+function Num(props: { value: number; onChange: (v: number) => void; placeholder?: string }) {
+  return <NumInput {...props} />;
 }
 function Chk({ v, onChange }: { v: boolean; onChange: (v: boolean) => void }) {
   return <input type="checkbox" checked={v} onChange={(e) => onChange(e.target.checked)}

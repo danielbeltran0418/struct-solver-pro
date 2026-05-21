@@ -9,6 +9,8 @@ export interface Span {
   material: string;     // "Acero" | "Hormigón" | ...
   E: number;            // GPa
   I: number;            // cm^4
+  releaseI?: boolean;   // Rótula interna en extremo izq (M = 0)
+  releaseJ?: boolean;   // Rótula interna en extremo der (M = 0)
 }
 
 export interface NodeSupport {
@@ -104,6 +106,8 @@ export interface FrameElement {
   E: number;       // GPa
   A: number;       // cm²
   I: number;       // cm⁴
+  releaseI?: boolean;   // Rótula interna en extremo nodeI (M = 0)
+  releaseJ?: boolean;   // Rótula interna en extremo nodeJ (M = 0)
 }
 export interface FrameModel {
   nodes: FrameNode[];

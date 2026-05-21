@@ -42,6 +42,15 @@ export function BeamVisualization({ model }: { model: BeamModel }) {
                     fontSize="11" fill="#64748b">
                 T{i + 1} ({sp.L} m)
               </text>
+              {/* Rótulas internas */}
+              {sp.releaseI && (
+                <circle cx={x1 + 10} cy={padY} r={5}
+                        fill="white" stroke="#0d9488" strokeWidth={2} />
+              )}
+              {sp.releaseJ && (
+                <circle cx={x2 - 10} cy={padY} r={5}
+                        fill="white" stroke="#0d9488" strokeWidth={2} />
+              )}
             </g>
           );
         })}

@@ -20,6 +20,8 @@ interface GenericElement {
   id: string;
   nodeI: string;
   nodeJ: string;
+  releaseI?: boolean;
+  releaseJ?: boolean;
 }
 
 export function GeometricView({
@@ -72,18 +74,30 @@ export function GeometricView({
 
         // Color por estado axial
         let stroke = "#0d9488";
-        let strokeWidth = 3;
+        const strokeWidth = 3;
         if (results?.ok && results.member_forces) {
           const mf = results.member_forces.find((m) => m.spanIndex ===
             elements.indexOf(e));
-          if (mf?.state === "Tracción") { stroke = "#16a34a"; strokeWidth = 3; }
-          else if (mf?.state === "Compresión") { stroke = "#dc2626"; strokeWidth = 3; }
+          if (mf?.state === "Tracción") stroke = "#16a34a";
+          else if (mf?.state === "Compresión") stroke = "#dc2626";
         }
         return (
-          <line key={e.id}
-                x1={px(ni.x)} y1={py(ni.y)}
-                x2={px(nj.x)} y2={py(nj.y)}
-                stroke={stroke} strokeWidth={strokeWidth} />
+          <g key={e.id}>
+            <line x1={px(ni.x)} y1={py(ni.y)}
+                  x2={px(nj.x)} y2={py(nj.y)}
+                  stroke={stroke} strokeWidth={strokeWidth} />
+            {/* Rótulas internas (círculo blanco con borde en extremos liberados) */}
+            {e.releaseI && (
+              <circle cx={interp(px(ni.x), px(nj.x), 0.08)}
+                      cy={interp(py(ni.y), py(nj.y), 0.08)}
+                      r={5} fill="white" stroke={stroke} strokeWidth={2} />
+            )}
+            {e.releaseJ && (
+              <circle cx={interp(px(ni.x), px(nj.x), 0.92)}
+                      cy={interp(py(ni.y), py(nj.y), 0.92)}
+                      r={5} fill="white" stroke={stroke} strokeWidth={2} />
+            )}
+          </g>
         );
       })}
 
@@ -170,6 +184,8 @@ export function GeometricView({
     </svg>
   );
 }
+
+function interp(a: number, b: number, t: number) { return a + (b - a) * t; }
 
 function renderSupport(n: GenericNode, x: number, y: number) {
   // Empotrado (fixed_u + fixed_v + fixed_theta)

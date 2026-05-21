@@ -7,6 +7,7 @@
 import type { FrameModel, SolveResponse } from "./types";
 import {
   zeros, matMul, matMulVec, transpose, submatrix, subvector, solveLinear,
+  staticCondense,
 } from "./linalg";
 
 const DOF = 3;
@@ -55,7 +56,9 @@ export function solveFrame(model: FrameModel): SolveResponse {
 
   const elementData: {
     L: number; c: number; s: number;
-    dofMap: number[]; T: number[][]; kLoc: number[][]; kGlob: number[][];
+    dofMap: number[]; T: number[][];
+    kLoc: number[][];     // matriz local (posiblemente condensada por rótula)
+    releaseI: boolean; releaseJ: boolean;
   }[] = [];
 
   for (const e of elements) {
@@ -71,7 +74,22 @@ export function solveFrame(model: FrameModel): SolveResponse {
     const E_kN_m2 = e.E * 1e6;
     const A_m2 = e.A * 1e-4;
     const I_m4 = e.I * 1e-8;
-    const kLoc = kLocal(E_kN_m2, A_m2, I_m4, L);
+    let kLoc = kLocal(E_kN_m2, A_m2, I_m4, L);
+
+    // Rótula interna: liberar rotación en extremo i (GDL local 2) o j (GDL local 5).
+    // No hay cargas distribuidas por barra en frame (solo nodales), así que f_eq = 0 → no
+    // hay corrección de fuerzas equivalentes a nivel de elemento.
+    const released: number[] = [];
+    if (e.releaseI) released.push(2);
+    if (e.releaseJ) released.push(5);
+    if (released.length === 2) {
+      return { ok: false, error: `Barra ${e.id}: no puede tener rótulas en ambos extremos (mecanismo de flexión).` };
+    }
+    if (released.length > 0) {
+      const cond = staticCondense(kLoc, [0, 0, 0, 0, 0, 0], released);
+      kLoc = cond.k;
+    }
+
     const T = transformT(c, s);
     const kGlob = matMul(matMul(transpose(T), kLoc), T);
     const dofMap = [
@@ -81,7 +99,10 @@ export function solveFrame(model: FrameModel): SolveResponse {
     for (let a = 0; a < 6; a++)
       for (let b = 0; b < 6; b++)
         K[dofMap[a]][dofMap[b]] += kGlob[a][b];
-    elementData.push({ L, c, s, dofMap, T, kLoc, kGlob });
+    elementData.push({
+      L, c, s, dofMap, T, kLoc,
+      releaseI: !!e.releaseI, releaseJ: !!e.releaseJ,
+    });
   }
 
   // GDL libres/restringidos
@@ -122,15 +143,14 @@ export function solveFrame(model: FrameModel): SolveResponse {
     const uLoc = matMulVec(e.T, uGlob);
     const fLoc = matMulVec(e.kLoc, uLoc);
     // fLoc = [N_i, V_i_loc, M_i, N_j, V_j_loc, M_j]
-    // Convención: N positivo = tracción en extremo j (estiramiento del elemento)
     const N = fLoc[3];
     let state: "Tracción" | "Compresión" | "Nulo" = "Nulo";
     if (Math.abs(N) > 1e-6) state = N > 0 ? "Tracción" : "Compresión";
     member_forces.push({
       spanIndex: idx,
       N, state,
-      V_i: fLoc[1], M_i: fLoc[2],
-      V_j: fLoc[4], M_j: fLoc[5],
+      V_i: fLoc[1], M_i: e.releaseI ? 0 : fLoc[2],
+      V_j: fLoc[4], M_j: e.releaseJ ? 0 : fLoc[5],
     });
   }
 
