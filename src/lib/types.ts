@@ -53,6 +53,14 @@ export interface SolveResponse {
   // Matrices intermedias
   K_global?: number[][];
   F_global?: number[];
+  // Matrices por elemento (paso intermedio del Método de la Rigidez)
+  element_matrices?: {
+    id: string;            // etiqueta de la barra/tramo
+    k_local: number[][];   // matriz de rigidez local (k')
+    T?: number[][];        // matriz de transformación (no aplica a viga continua)
+    k_global: number[][];  // k = T^T · k' · T
+    dofMap: number[];      // GDL globales donde se ensambla
+  }[];
   diagrams?: {
     spanIndex: number;
     x: number[];

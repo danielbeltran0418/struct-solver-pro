@@ -154,9 +154,18 @@ export function solveFrame(model: FrameModel): SolveResponse {
     });
   }
 
+  const element_matrices = elementData.map((ed, i) => ({
+    id: elements[i].id,
+    k_local: ed.kLoc,
+    T: ed.T,
+    k_global: matMul(matMul(transpose(ed.T), ed.kLoc), ed.T),
+    dofMap: ed.dofMap,
+  }));
+
   return {
     ok: true,
     displacements, reactions, member_forces,
     K_global: K, F_global: F,
+    element_matrices,
   };
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { MatricesView } from "@/components/shared/MatricesView";
 import type { FrameModel, SolveResponse } from "@/lib/types";
 
 export function FrameResults({ model, result }: { model: FrameModel; result: SolveResponse | null }) {
@@ -47,17 +48,7 @@ export function FrameResults({ model, result }: { model: FrameModel; result: Sol
 }
 
 export function FrameMatrices({ result }: { result: SolveResponse | null }) {
-  if (!result?.ok) return <Empty text="Calcula la estructura para ver las matrices." />;
-  return (
-    <div className="space-y-4">
-      <Card title="Matriz de rigidez global K">
-        <Mat M={result.K_global ?? []} />
-      </Card>
-      <Card title="Vector de fuerzas F">
-        <Mat M={(result.F_global ?? []).map((v) => [v])} />
-      </Card>
-    </div>
-  );
+  return <MatricesView result={result} hasTransform />;
 }
 
 // helpers (idénticos a TrussResults — se podría refactorear, lo dejo inline por ahora)

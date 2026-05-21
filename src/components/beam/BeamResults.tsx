@@ -1,5 +1,6 @@
 "use client";
 
+import { MatricesView } from "@/components/shared/MatricesView";
 import type { SolveResponse } from "@/lib/types";
 
 export function BeamResults({ result }: { result: SolveResponse | null }) {
@@ -44,17 +45,8 @@ export function BeamDiagrams({ result }: { result: SolveResponse | null }) {
 }
 
 export function BeamMatrices({ result }: { result: SolveResponse | null }) {
-  if (!result?.ok) return <Placeholder text="Calcula la estructura para ver las matrices." />;
-  return (
-    <div className="space-y-4">
-      <Card title="Matriz de rigidez global K">
-        <Matrix mat={result.K_global ?? []} />
-      </Card>
-      <Card title="Vector de fuerzas global F">
-        <Matrix mat={(result.F_global ?? []).map((v) => [v])} />
-      </Card>
-    </div>
-  );
+  // En viga continua no hay matriz de transformación (todos los tramos son horizontales)
+  return <MatricesView result={result} hasTransform={false} />;
 }
 
 // ============================================================

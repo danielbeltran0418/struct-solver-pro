@@ -1,5 +1,6 @@
 "use client";
 
+import { MatricesView } from "@/components/shared/MatricesView";
 import type { SolveResponse, TrussModel } from "@/lib/types";
 
 export function TrussResults({ model, result }: { model: TrussModel; result: SolveResponse | null }) {
@@ -34,17 +35,7 @@ export function TrussResults({ model, result }: { model: TrussModel; result: Sol
 }
 
 export function TrussMatrices({ result }: { result: SolveResponse | null }) {
-  if (!result?.ok) return <Empty text="Calcula la estructura para ver las matrices." />;
-  return (
-    <div className="space-y-4">
-      <Card title="Matriz de rigidez global K">
-        <Mat M={result.K_global ?? []} />
-      </Card>
-      <Card title="Vector de fuerzas F">
-        <Mat M={(result.F_global ?? []).map((v) => [v])} />
-      </Card>
-    </div>
-  );
+  return <MatricesView result={result} hasTransform />;
 }
 
 // helpers

@@ -283,6 +283,15 @@ export function solveBeamLocal(model: BeamModel): SolveResponse {
     });
   }
 
+  // Matrices por elemento (en viga continua no hay matriz de transformación
+  // porque todos los tramos son horizontales — T = identidad → k_local = k_global)
+  const element_matrices = spansData.map((sd, i) => ({
+    id: spans[i].id ?? `T${i + 1}`,
+    k_local: sd.keCondensed,
+    k_global: sd.keCondensed,
+    dofMap: sd.dofMap,
+  }));
+
   return {
     ok: true,
     displacements,
@@ -290,6 +299,7 @@ export function solveBeamLocal(model: BeamModel): SolveResponse {
     member_forces,
     K_global: K,
     F_global: F,
+    element_matrices,
     diagrams,
   };
 }
