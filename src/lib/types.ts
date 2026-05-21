@@ -117,7 +117,26 @@ export interface FrameElement {
   releaseI?: boolean;   // Rótula interna en extremo nodeI (M = 0)
   releaseJ?: boolean;   // Rótula interna en extremo nodeJ (M = 0)
 }
+/**
+ * Carga sobre una BARRA del pórtico (no nodal).
+ * - direction: "global" → magnitud en kN o kN/m según eje global (Y por defecto, "abajo+")
+ *              "local"  → perpendicular al eje del elemento (en dirección y')
+ * - type: tipo de distribución
+ * - position: distancia desde nodoI (para puntual/momento)
+ * - magnitude2: extremo derecho de la trapezoidal
+ */
+export interface FrameLoad {
+  id: string;
+  elementId: string;
+  type: "uniforme" | "puntual" | "trapezoidal" | "momento";
+  direction: "global_y" | "local_perp";
+  magnitude: number;
+  magnitude2?: number;
+  position?: number;
+}
+
 export interface FrameModel {
   nodes: FrameNode[];
   elements: FrameElement[];
+  loads?: FrameLoad[];
 }

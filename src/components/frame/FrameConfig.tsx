@@ -1,7 +1,7 @@
 "use client";
 
 import { NumInput } from "@/components/shared/NumInput";
-import type { FrameElement, FrameModel, FrameNode } from "@/lib/types";
+import type { FrameElement, FrameLoad, FrameModel, FrameNode } from "@/lib/types";
 
 function genId(prefix: string) {
   return prefix + Math.random().toString(36).slice(2, 6);
@@ -49,6 +49,25 @@ export function FrameConfig({
     if (model.elements.length <= 1) return;
     onChange({ ...model, elements: model.elements.filter((_, idx) => idx !== i) });
   };
+
+  // ---- Cargas en barras ----
+  const loads = model.loads ?? [];
+  const updateLoad = (i: number, patch: Partial<FrameLoad>) =>
+    onChange({ ...model, loads: loads.map((l, idx) => idx === i ? { ...l, ...patch } : l) });
+  const addLoad = (type: FrameLoad["type"]) => {
+    const newLoad: FrameLoad = {
+      id: genId("L"),
+      elementId: model.elements[0]?.id ?? "",
+      type,
+      direction: "global_y",
+      magnitude: 10,
+      magnitude2: type === "trapezoidal" ? 5 : undefined,
+      position: type === "puntual" || type === "momento" ? 1 : undefined,
+    };
+    onChange({ ...model, loads: [...loads, newLoad] });
+  };
+  const removeLoad = (i: number) =>
+    onChange({ ...model, loads: loads.filter((_, idx) => idx !== i) });
 
   return (
     <div className="space-y-5">
@@ -160,6 +179,87 @@ export function FrameConfig({
                 className="mt-2 px-3 py-1 text-sm bg-brand-50 text-brand-700 rounded hover:bg-brand-100">
           + Añadir barra
         </button>
+      </Section>
+
+      {/* ===== Cargas sobre barras ===== */}
+      <Section title={`CARGAS EN BARRAS  ${loads.length}`}>
+        <div className="flex gap-1 mb-3">
+          {(["puntual", "uniforme", "trapezoidal", "momento"] as FrameLoad["type"][]).map((t) => (
+            <button key={t} onClick={() => addLoad(t)}
+                    className="flex-1 px-2 py-1.5 text-xs font-medium rounded border border-slate-200
+                               bg-white hover:bg-brand-50 hover:border-brand-200 capitalize"
+                    title={`Añadir carga ${t}`}>
+              + {t}
+            </button>
+          ))}
+        </div>
+        {loads.length === 0 ? (
+          <p className="text-xs text-slate-400 italic">
+            Sin cargas en barras. Click un botón para añadir.
+            Las cargas nodales se ingresan en la tabla de Nodos (Fx, Fy, M).
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-slate-500 text-xs">
+                  <th className="text-left pb-1">Tipo</th>
+                  <th className="text-left pb-1">Barra</th>
+                  <th className="text-left pb-1">Dir</th>
+                  <th className="text-left pb-1">Pos (m)</th>
+                  <th className="text-left pb-1">Magnitud</th>
+                  <th className="text-left pb-1">w₂</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {loads.map((l, i) => (
+                  <tr key={l.id} className="border-t border-slate-100">
+                    <td className="py-1 capitalize">{l.type}</td>
+                    <td>
+                      <select value={l.elementId}
+                              onChange={(e) => updateLoad(i, { elementId: e.target.value })}
+                              className="bg-transparent border border-slate-200 rounded px-1 py-0.5 text-sm">
+                        {model.elements.map((e) => <option key={e.id} value={e.id}>{e.id}</option>)}
+                      </select>
+                    </td>
+                    <td>
+                      <select value={l.direction}
+                              onChange={(e) => updateLoad(i, { direction: e.target.value as FrameLoad["direction"] })}
+                              className="bg-transparent border border-slate-200 rounded px-1 py-0.5 text-sm"
+                              title="global_y = gravedad vertical | local_perp = perpendicular al eje del elemento">
+                        <option value="global_y">↓ Y global</option>
+                        <option value="local_perp">⊥ local</option>
+                      </select>
+                    </td>
+                    <td>
+                      {(l.type === "puntual" || l.type === "momento") ? (
+                        <Num value={l.position ?? 0}
+                             onChange={(v) => updateLoad(i, { position: v })} />
+                      ) : <span className="text-slate-300">—</span>}
+                    </td>
+                    <td><Num value={l.magnitude}
+                             onChange={(v) => updateLoad(i, { magnitude: v })} /></td>
+                    <td>
+                      {l.type === "trapezoidal" ? (
+                        <Num value={l.magnitude2 ?? 0}
+                             onChange={(v) => updateLoad(i, { magnitude2: v })} />
+                      ) : <span className="text-slate-300">—</span>}
+                    </td>
+                    <td>
+                      <button onClick={() => removeLoad(i)}
+                              className="text-slate-400 hover:text-red-500">✕</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="text-[10px] text-slate-400 mt-2">
+          Magnitud + = abajo (gravedad) para Y global. Puntual/momento: en kN o kN·m.
+          Distribuida (uniforme/trapezoidal): en kN/m.
+        </p>
       </Section>
 
       <button onClick={onSolve}
