@@ -30,7 +30,7 @@ export function BeamVisualization({ model }: { model: BeamModel }) {
         <line x1={0} y1={padY + 30} x2={W} y2={padY + 30}
               stroke="#e2e8f0" strokeDasharray="2 4" />
 
-        {/* Viga */}
+        {/* Viga (rect + label de cada tramo) */}
         {model.spans.map((sp, i) => {
           const x1 = padX + nodePositions[i] * scale;
           const x2 = padX + nodePositions[i + 1] * scale;
@@ -42,18 +42,26 @@ export function BeamVisualization({ model }: { model: BeamModel }) {
                     fontSize="11" fill="#64748b">
                 T{i + 1} ({sp.L} m)
               </text>
-              {/* Rótulas internas */}
-              {sp.releaseI && (
-                <circle cx={x1 + 10} cy={padY} r={5}
-                        fill="white" stroke="#0d9488" strokeWidth={2} />
-              )}
-              {sp.releaseJ && (
-                <circle cx={x2 - 10} cy={padY} r={5}
-                        fill="white" stroke="#0d9488" strokeWidth={2} />
-              )}
             </g>
           );
         })}
+
+        {/* Rótulas internas — una por NODO (deduplicadas entre tramos adyacentes) */}
+        {(() => {
+          const circles: React.ReactNode[] = [];
+          for (let n = 0; n < model.supports.length; n++) {
+            const leftSpan  = n > 0 ? model.spans[n - 1] : undefined;
+            const rightSpan = n < model.spans.length ? model.spans[n] : undefined;
+            const hasHinge = (leftSpan?.releaseJ ?? false) || (rightSpan?.releaseI ?? false);
+            if (!hasHinge) continue;
+            const cx = padX + nodePositions[n] * scale;
+            circles.push(
+              <circle key={`hinge-${n}`} cx={cx} cy={padY} r={5.5}
+                      fill="white" stroke="#0d9488" strokeWidth={2} />
+            );
+          }
+          return circles;
+        })()}
 
         {/* Apoyos */}
         {model.supports.map((s, i) => {
