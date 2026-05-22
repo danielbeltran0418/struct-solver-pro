@@ -25,6 +25,16 @@ function localEquivFromGlobalY(w: number, L: number, c: number, s: number,
   return localEquivCombined(wx, wy, L, type, pos, mag2);
 }
 
+function localEquivFromGlobalX(w: number, L: number, c: number, s: number,
+  type: FrameLoad["type"], pos?: number, mag2?: number): number[] {
+  // Carga horizontal global "derecha+", magnitud w. Vector global: (w, 0).
+  //   w_x_local =  w·cosθ
+  //   w_y_local = -w·sinθ
+  const wx =  w * c;
+  const wy = -w * s;
+  return localEquivCombined(wx, wy, L, type, pos, mag2);
+}
+
 function localEquivFromLocalPerp(w: number, L: number,
   type: FrameLoad["type"], pos?: number, mag2?: number): number[] {
   // Carga perpendicular al eje del elemento, "abajo+ respecto al elemento"
@@ -126,6 +136,9 @@ function loadToLocalEquiv(load: FrameLoad, L: number, c: number, s: number): num
   if (load.direction === "local_perp") {
     return localEquivFromLocalPerp(load.magnitude, L, load.type, load.position, load.magnitude2);
   }
+  if (load.direction === "global_x") {
+    return localEquivFromGlobalX(load.magnitude, L, c, s, load.type, load.position, load.magnitude2);
+  }
   return localEquivFromGlobalY(load.magnitude, L, c, s, load.type, load.position, load.magnitude2);
 }
 
@@ -195,15 +208,15 @@ export function solveFrame(model: FrameModel): SolveResponse {
     const I_m4 = e.I * 1e-8;
     let kLoc = kLocal(E_kN_m2, A_m2, I_m4, L);
 
-    // Rótula interna: liberar rotación en extremo i (GDL local 2) o j (GDL local 5).
-    // No hay cargas distribuidas por barra en frame (solo nodales), así que f_eq = 0 → no
-    // hay corrección de fuerzas equivalentes a nivel de elemento.
+    // Rótulas DERIVADAS de los nodos: si nodeI.isPin → liberar M en extremo i (GDL 2),
+    // si nodeJ.isPin → liberar M en extremo j (GDL 5).
+    const releaseI = !!ni.isPin;
+    const releaseJ = !!nj.isPin;
     const released: number[] = [];
-    if (e.releaseI) released.push(2);
-    if (e.releaseJ) released.push(5);
-    if (released.length === 2) {
-      return { ok: false, error: `Barra ${e.id}: no puede tener rótulas en ambos extremos (mecanismo de flexión).` };
-    }
+    if (releaseI) released.push(2);
+    if (releaseJ) released.push(5);
+    // Si ambos extremos liberados, la barra solo trabaja axialmente (truss-like).
+    // Eso ES válido — la condensación produce una matriz axial correcta.
     if (released.length > 0) {
       const cond = staticCondense(kLoc, [0, 0, 0, 0, 0, 0], released);
       kLoc = cond.k;
@@ -220,7 +233,7 @@ export function solveFrame(model: FrameModel): SolveResponse {
         K[dofMap[a]][dofMap[b]] += kGlob[a][b];
     elementData.push({
       L, c, s, dofMap, T, kLoc,
-      releaseI: !!e.releaseI, releaseJ: !!e.releaseJ,
+      releaseI, releaseJ,
     });
   }
 
@@ -240,12 +253,16 @@ export function solveFrame(model: FrameModel): SolveResponse {
     for (let i = 0; i < 6; i++) F[ed.dofMap[i]] += fGlobEq[i];
   }
 
-  // GDL libres/restringidos
+  // GDL libres/restringidos.
+  // Si un nodo tiene isPin = true, su GDL rotacional θ queda sin rigidez (todas las
+  // barras adyacentes liberan M ahí). Para evitar matriz singular lo restringimos
+  // implícitamente — no afecta el resultado físico.
   const free: number[] = [], fixed: number[] = [];
   nodes.forEach((n, i) => {
-    (n.fixed_u     ? fixed : free).push(DOF * i);
-    (n.fixed_v     ? fixed : free).push(DOF * i + 1);
-    (n.fixed_theta ? fixed : free).push(DOF * i + 2);
+    const thetaRestrained = n.fixed_theta || !!n.isPin;
+    (n.fixed_u       ? fixed : free).push(DOF * i);
+    (n.fixed_v       ? fixed : free).push(DOF * i + 1);
+    (thetaRestrained ? fixed : free).push(DOF * i + 2);
   });
 
   const U = Array(nDof).fill(0);

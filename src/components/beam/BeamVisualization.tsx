@@ -46,22 +46,15 @@ export function BeamVisualization({ model }: { model: BeamModel }) {
           );
         })}
 
-        {/* Rótulas internas — una por NODO (deduplicadas entre tramos adyacentes) */}
-        {(() => {
-          const circles: React.ReactNode[] = [];
-          for (let n = 0; n < model.supports.length; n++) {
-            const leftSpan  = n > 0 ? model.spans[n - 1] : undefined;
-            const rightSpan = n < model.spans.length ? model.spans[n] : undefined;
-            const hasHinge = (leftSpan?.releaseJ ?? false) || (rightSpan?.releaseI ?? false);
-            if (!hasHinge) continue;
-            const cx = padX + nodePositions[n] * scale;
-            circles.push(
-              <circle key={`hinge-${n}`} cx={cx} cy={padY} r={5.5}
-                      fill="white" stroke="#0d9488" strokeWidth={2} />
-            );
-          }
-          return circles;
-        })()}
+        {/* Rótulas internas — definidas a nivel del NODO (isPin) */}
+        {model.supports.map((s, n) =>
+          s.isPin ? (
+            <circle key={`hinge-${n}`}
+                    cx={padX + nodePositions[n] * scale}
+                    cy={padY} r={5.5}
+                    fill="white" stroke="#0d9488" strokeWidth={2} />
+          ) : null
+        )}
 
         {/* Apoyos */}
         {model.supports.map((s, i) => {

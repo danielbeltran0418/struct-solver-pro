@@ -95,8 +95,6 @@ export function BeamConfig({
                 <th className="text-left pb-1">E (GPA)</th>
                 <th className="text-left pb-1">I (CM⁴)</th>
                 <th className="text-left pb-1">EI (KN·M²)</th>
-                <th className="text-center pb-1" title="Rótula interna en extremo izquierdo">◯i</th>
-                <th className="text-center pb-1" title="Rótula interna en extremo derecho">◯j</th>
                 <th></th>
               </tr>
             </thead>
@@ -122,16 +120,6 @@ export function BeamConfig({
                     <td><NumInput value={s.E} onChange={(v) => updateSpan(i, { E: v })} placeholder="200" /></td>
                     <td><NumInput value={s.I} onChange={(v) => updateSpan(i, { I: v })} placeholder="8356" /></td>
                     <td className="text-slate-500">{kFormat(EI)}</td>
-                    <td className="text-center">
-                      <input type="checkbox" className="accent-brand-500"
-                             checked={!!s.releaseI}
-                             onChange={(e) => updateSpan(i, { releaseI: e.target.checked })} />
-                    </td>
-                    <td className="text-center">
-                      <input type="checkbox" className="accent-brand-500"
-                             checked={!!s.releaseJ}
-                             onChange={(e) => updateSpan(i, { releaseJ: e.target.checked })} />
-                    </td>
                     <td>
                       <button
                         onClick={() => removeSpan(i)}
@@ -146,10 +134,7 @@ export function BeamConfig({
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between mt-3">
-          <p className="text-[10px] text-slate-400">
-            ◯i / ◯j: rótula interna en extremo del tramo (M = 0). No pueden estar en ambos extremos.
-          </p>
+        <div className="flex items-center justify-end mt-3">
           <button
             onClick={addSpan}
             className="px-3 py-1 text-sm bg-brand-50 text-brand-700 rounded hover:bg-brand-100"
@@ -172,7 +157,17 @@ export function BeamConfig({
                   <option key={k} value={k}>{SUPPORT_LABELS[k]}</option>
                 ))}
               </select>
-              <span className="text-xs text-slate-400 w-12 text-right">{s.type}</span>
+              <label className="flex items-center gap-1 text-xs text-slate-600"
+                     title="Rótula interna: libera M en todas las barras conectadas a este nodo">
+                <input type="checkbox" className="accent-brand-500"
+                       checked={!!s.isPin}
+                       onChange={(e) => onChange({
+                         ...model,
+                         supports: model.supports.map((sp, idx) =>
+                           idx === i ? { ...sp, isPin: e.target.checked } : sp),
+                       })} />
+                ◯ Pin
+              </label>
             </div>
           ))}
         </div>
@@ -180,7 +175,7 @@ export function BeamConfig({
           <div><span className="font-mono">PIN</span> Articulado</div>
           <div><span className="font-mono">ROD</span> Rodillo</div>
           <div><span className="font-mono">EMP</span> Empotrado</div>
-          <div><span className="font-mono">—</span> Libre</div>
+          <div><span className="font-mono">◯</span> Pin = rótula interna</div>
         </div>
       </Section>
 

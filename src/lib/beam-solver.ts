@@ -164,14 +164,16 @@ export function solveBeamLocal(model: BeamModel): SolveResponse {
       fEqElem = fEqElem.map((v, j) => v + eq[j]);
     }
 
-    // GDL locales liberados (rotaciones en extremos articulados):
-    // - releaseI → libera θ_i en GDL local 1
-    // - releaseJ → libera θ_j en GDL local 3
+    // Rótulas internas DERIVADAS de los nodos:
+    //   - Si supports[i].isPin   → el tramo libera θ en su nodo izquierdo  (GDL local 1)
+    //   - Si supports[i+1].isPin → el tramo libera θ en su nodo derecho    (GDL local 3)
+    const releaseI = !!supports[i]?.isPin;
+    const releaseJ = !!supports[i + 1]?.isPin;
     const released: number[] = [];
-    if (sp.releaseI) released.push(1);
-    if (sp.releaseJ) released.push(3);
+    if (releaseI) released.push(1);
+    if (releaseJ) released.push(3);
     if (released.length === 2) {
-      return { ok: false, error: `Tramo T${i + 1}: no puede tener rótulas en ambos extremos (mecanismo).` };
+      return { ok: false, error: `Tramo T${i + 1}: pin en ambos nodos del tramo deja la viga sin rigidez flexional.` };
     }
     if (released.length > 0) {
       const cond = staticCondense(ke, fEqElem, released);
@@ -188,16 +190,19 @@ export function solveBeamLocal(model: BeamModel): SolveResponse {
     spansData.push({
       L, EI, dofMap,
       keCondensed: ke, fEqCondensed: fEqElem,
-      releaseI: !!sp.releaseI, releaseJ: !!sp.releaseJ,
+      releaseI, releaseJ,
     });
   }
 
-  // GDL libres/restringidos
+  // GDL libres/restringidos.
+  // Si un nodo es isPin, restringimos su θ implícitamente (no tiene sentido
+  // estructural porque los tramos adyacentes liberan M ahí) para evitar singularidad.
   const free: number[] = [], fixed: number[] = [];
   for (let i = 0; i < supports.length; i++) {
     const [rv, rt] = SUPPORT_RESTRAINTS[supports[i].type];
-    (rv ? fixed : free).push(2 * i);
-    (rt ? fixed : free).push(2 * i + 1);
+    const thetaRestrained = rt || !!supports[i].isPin;
+    (rv               ? fixed : free).push(2 * i);
+    (thetaRestrained  ? fixed : free).push(2 * i + 1);
   }
 
   // Resolución

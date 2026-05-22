@@ -15,13 +15,12 @@ interface GenericNode {
   fixed_theta?: boolean;
   fx: number; fy: number;
   m?: number;
+  isPin?: boolean;   // rótula interna en el nodo
 }
 interface GenericElement {
   id: string;
   nodeI: string;
   nodeJ: string;
-  releaseI?: boolean;
-  releaseJ?: boolean;
 }
 
 export function GeometricView({
@@ -82,24 +81,19 @@ export function GeometricView({
           else if (mf?.state === "Compresión") stroke = "#dc2626";
         }
         return (
-          <g key={e.id}>
-            <line x1={px(ni.x)} y1={py(ni.y)}
-                  x2={px(nj.x)} y2={py(nj.y)}
-                  stroke={stroke} strokeWidth={strokeWidth} />
-            {/* Rótulas internas (círculo blanco con borde en extremos liberados) */}
-            {e.releaseI && (
-              <circle cx={interp(px(ni.x), px(nj.x), 0.08)}
-                      cy={interp(py(ni.y), py(nj.y), 0.08)}
-                      r={5} fill="white" stroke={stroke} strokeWidth={2} />
-            )}
-            {e.releaseJ && (
-              <circle cx={interp(px(ni.x), px(nj.x), 0.92)}
-                      cy={interp(py(ni.y), py(nj.y), 0.92)}
-                      r={5} fill="white" stroke={stroke} strokeWidth={2} />
-            )}
-          </g>
+          <line key={e.id}
+                x1={px(ni.x)} y1={py(ni.y)}
+                x2={px(nj.x)} y2={py(nj.y)}
+                stroke={stroke} strokeWidth={strokeWidth} />
         );
       })}
+
+      {/* Rótulas internas — dibujadas en el NODO (isPin) */}
+      {nodes.map((n) => n.isPin ? (
+        <circle key={`pin-${n.id}`}
+                cx={px(n.x)} cy={py(n.y)} r={7}
+                fill="white" stroke="#0d9488" strokeWidth={2.2} />
+      ) : null)}
 
       {/* Deformada */}
       {deformed && results?.ok && results.displacements && (
@@ -184,8 +178,6 @@ export function GeometricView({
     </svg>
   );
 }
-
-function interp(a: number, b: number, t: number) { return a + (b - a) * t; }
 
 function renderSupport(n: GenericNode, x: number, y: number) {
   // Empotrado (fixed_u + fixed_v + fixed_theta)

@@ -9,13 +9,12 @@ export interface Span {
   material: string;     // "Acero" | "Hormigón" | ...
   E: number;            // GPa
   I: number;            // cm^4
-  releaseI?: boolean;   // Rótula interna en extremo izq (M = 0)
-  releaseJ?: boolean;   // Rótula interna en extremo der (M = 0)
 }
 
 export interface NodeSupport {
   id: string;           // "N1", "N2", ...
   type: SupportType;
+  isPin?: boolean;      // Rótula interna en el nodo: libera M en todas las barras conectadas
 }
 
 export type LoadType = "puntual" | "uniforme" | "trapezoidal" | "momento";
@@ -106,6 +105,7 @@ export interface FrameNode {
   fx: number;
   fy: number;
   m: number;
+  isPin?: boolean;      // Rótula interna: libera M en todas las barras que conectan al nodo
 }
 export interface FrameElement {
   id: string;
@@ -114,8 +114,6 @@ export interface FrameElement {
   E: number;       // GPa
   A: number;       // cm²
   I: number;       // cm⁴
-  releaseI?: boolean;   // Rótula interna en extremo nodeI (M = 0)
-  releaseJ?: boolean;   // Rótula interna en extremo nodeJ (M = 0)
 }
 /**
  * Carga sobre una BARRA del pórtico (no nodal).
@@ -129,7 +127,13 @@ export interface FrameLoad {
   id: string;
   elementId: string;
   type: "uniforme" | "puntual" | "trapezoidal" | "momento";
-  direction: "global_y" | "local_perp";
+  /**
+   * Dirección de la carga:
+   * - global_y: vertical (gravedad, positivo = abajo)
+   * - global_x: horizontal (viento/lateral, positivo = derecha)
+   * - local_perp: perpendicular al eje del elemento (+y' local)
+   */
+  direction: "global_y" | "global_x" | "local_perp";
   magnitude: number;
   magnitude2?: number;
   position?: number;
