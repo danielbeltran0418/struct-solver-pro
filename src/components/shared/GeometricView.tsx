@@ -1,11 +1,6 @@
 "use client";
 
-/**
- * Visualización SVG genérica para armaduras y pórticos.
- * Dibuja nodos, barras, apoyos, cargas y (opcionalmente) deformada.
- */
-
-import type { SolveResponse } from "@/lib/types";
+import type { FrameLoad, SolveResponse } from "@/lib/types";
 
 interface GenericNode {
   id: string;
@@ -25,13 +20,14 @@ interface GenericElement {
 }
 
 export function GeometricView({
-  nodes, elements, results, scale = 100, deformed = true,
+  nodes, elements, results, scale = 100, deformed = true, frameLoads,
 }: {
   nodes: GenericNode[];
   elements: GenericElement[];
   results?: SolveResponse | null;
   scale?: number;
   deformed?: boolean;
+  frameLoads?: FrameLoad[];
 }) {
   if (nodes.length === 0) return null;
 
@@ -66,6 +62,10 @@ export function GeometricView({
         <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5"
                 markerWidth="6" markerHeight="6" orient="auto-start-reverse">
           <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb" />
+        </marker>
+        <marker id="arrow-load" viewBox="0 0 10 10" refX="8" refY="5"
+                markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#d97706" />
         </marker>
       </defs>
       <rect width={W} height={H} fill="url(#grid)" opacity="0.5" />
@@ -148,6 +148,99 @@ export function GeometricView({
           );
         }
         return circles;
+      })}
+
+      {/* Cargas en barras (distribuidas/puntuales/momentos) */}
+      {frameLoads && frameLoads.map((load) => {
+        const elemIdx = elements.findIndex((e) => e.id === load.elementId);
+        if (elemIdx < 0) return null;
+        const elem = elements[elemIdx];
+        const niIdx = idIndex.get(elem.nodeI);
+        const njIdx = idIndex.get(elem.nodeJ);
+        if (niIdx === undefined || njIdx === undefined) return null;
+        const ni = nodes[niIdx], nj = nodes[njIdx];
+        const xi = px(ni.x), yi = py(ni.y);
+        const xj = px(nj.x), yj = py(nj.y);
+        const L_svg = Math.hypot(xj - xi, yj - yi);
+        if (L_svg < 1) return null;
+
+        // Dirección de la flecha de carga en coordenadas SVG
+        const ex = (xj - xi) / L_svg;
+        const ey = (yj - yi) / L_svg;
+        const w = load.magnitude;
+        if (w === 0) return null;
+        const sgn = w > 0 ? 1 : -1;
+
+        let ldx: number, ldy: number;
+        if (load.direction === "global_y") {
+          ldx = 0; ldy = sgn;
+        } else if (load.direction === "global_x") {
+          ldx = sgn; ldy = 0;
+        } else {
+          // local_perp: 90° CCW del vector SVG del elemento = "bajo" el elemento
+          ldx = sgn * (-ey); ldy = sgn * ex;
+        }
+
+        const arrowLen = 22;
+        const children: React.ReactNode[] = [];
+
+        if (load.type === "uniforme" || load.type === "trapezoidal") {
+          const N = 5;
+          const tailPts: [number, number][] = [];
+          for (let k = 0; k < N; k++) {
+            const t = (k + 0.5) / N;
+            const xo = xi + t * (xj - xi), yo = yi + t * (yj - yi);
+            const tx = xo + ldx * arrowLen, ty = yo + ldy * arrowLen;
+            tailPts.push([tx, ty]);
+            children.push(
+              <line key={`a${k}`} x1={tx} y1={ty} x2={xo} y2={yo}
+                    stroke="#d97706" strokeWidth={1.5} markerEnd="url(#arrow-load)" />
+            );
+          }
+          const d = tailPts.map(([x, y], i) => `${i === 0 ? "M" : "L"} ${x} ${y}`).join(" ");
+          children.push(
+            <path key="bar" d={d} stroke="#d97706" strokeWidth={2} fill="none" />
+          );
+          const mx = xi + 0.5 * (xj - xi) + ldx * (arrowLen + 10);
+          const my = yi + 0.5 * (yj - yi) + ldy * (arrowLen + 10);
+          children.push(
+            <text key="lbl" x={mx} y={my} fontSize="9" fill="#d97706" textAnchor="middle">
+              {Math.abs(w)} kN/m
+            </text>
+          );
+        } else if (load.type === "puntual") {
+          const Ls = Math.hypot(nj.x - ni.x, nj.y - ni.y) || 1;
+          const t = (load.position ?? Ls / 2) / Ls;
+          const xo = xi + t * (xj - xi), yo = yi + t * (yj - yi);
+          const tx = xo + ldx * arrowLen, ty = yo + ldy * arrowLen;
+          children.push(
+            <line key="a" x1={tx} y1={ty} x2={xo} y2={yo}
+                  stroke="#d97706" strokeWidth={1.5} markerEnd="url(#arrow-load)" />
+          );
+          children.push(
+            <text key="lbl" x={tx + 4} y={ty - 3} fontSize="9" fill="#d97706">
+              {Math.abs(w)} kN
+            </text>
+          );
+        } else if (load.type === "momento") {
+          const Ls = Math.hypot(nj.x - ni.x, nj.y - ni.y) || 1;
+          const t = (load.position ?? Ls / 2) / Ls;
+          const xo = xi + t * (xj - xi), yo = yi + t * (yj - yi);
+          const r = 12;
+          children.push(
+            <path key="arc"
+                  d={`M ${xo - r} ${yo} A ${r} ${r} 0 1 1 ${xo + r} ${yo}`}
+                  fill="none" stroke="#d97706" strokeWidth={1.5}
+                  markerEnd="url(#arrow-load)" />
+          );
+          children.push(
+            <text key="lbl" x={xo + r + 4} y={yo - 4} fontSize="9" fill="#d97706">
+              {Math.abs(w)} kN·m
+            </text>
+          );
+        }
+
+        return <g key={load.id}>{children}</g>;
       })}
 
       {/* Reacciones en apoyos */}

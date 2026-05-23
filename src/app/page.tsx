@@ -107,7 +107,7 @@ export default function Home() {
     const r = solveFrame(frame);
     setFrameResult(r);
     setSolving(false);
-    if (r.ok) setSection("results");
+    if (r.ok) setSection("diagrams");
   };
 
   const leftPanel = useMemo(() => {
@@ -149,9 +149,15 @@ export default function Home() {
     }
     // frame
     const view = <GeometricView nodes={frame.nodes} elements={frame.elements}
-                                results={frameResult} scale={100} />;
+                                results={frameResult} scale={100}
+                                frameLoads={frame.loads} />;
     if (section === "config")  return <ViewCard title="VISTA DEL PÓRTICO">{view}</ViewCard>;
-    if (section === "results") return <FrameResults model={frame} result={frameResult} />;
+    if (section === "results") return (
+      <div className="space-y-4">
+        <ViewCard title="DIAGRAMA CON REACCIONES">{view}</ViewCard>
+        <FrameResults model={frame} result={frameResult} />
+      </div>
+    );
     if (section === "diagrams")return <ViewCard title="ESTRUCTURA + DEFORMADA">{view}</ViewCard>;
     if (section === "matrices")return <FrameMatrices result={frameResult} />;
     return <ViewCard title="VISTA">{view}</ViewCard>;
