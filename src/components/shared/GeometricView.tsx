@@ -125,6 +125,33 @@ export function GeometricView({
         </g>
       ))}
 
+      {/* Rótulas internas — círculo blanco sobre el nodo, encima de todo */}
+      {elements.flatMap((e) => {
+        const i = idIndex.get(e.nodeI)!;
+        const j = idIndex.get(e.nodeJ)!;
+        const ni = nodes[i], nj = nodes[j];
+        let stroke = "#0d9488";
+        if (results?.ok && results.member_forces) {
+          const mf = results.member_forces.find((m) => m.spanIndex === elements.indexOf(e));
+          if (mf?.state === "Tracción") stroke = "#16a34a";
+          else if (mf?.state === "Compresión") stroke = "#dc2626";
+        }
+        const circles: React.ReactNode[] = [];
+        if (e.releaseI) {
+          circles.push(
+            <circle key={`ri-${e.id}`} cx={px(ni.x)} cy={py(ni.y)}
+                    r={5} fill="white" stroke={stroke} strokeWidth={2} />
+          );
+        }
+        if (e.releaseJ) {
+          circles.push(
+            <circle key={`rj-${e.id}`} cx={px(nj.x)} cy={py(nj.y)}
+                    r={5} fill="white" stroke={stroke} strokeWidth={2} />
+          );
+        }
+        return circles;
+      })}
+
       {/* Cargas nodales */}
       {nodes.map((n) => {
         const arrowLen = 35;
