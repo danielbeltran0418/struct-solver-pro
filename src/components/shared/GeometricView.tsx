@@ -63,6 +63,10 @@ export function GeometricView({
                 markerWidth="6" markerHeight="6" orient="auto-start-reverse">
           <path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626" />
         </marker>
+        <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5"
+                markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb" />
+        </marker>
       </defs>
       <rect width={W} height={H} fill="url(#grid)" opacity="0.5" />
 
@@ -144,6 +148,53 @@ export function GeometricView({
           );
         }
         return circles;
+      })}
+
+      {/* Reacciones en apoyos */}
+      {results?.ok && results.reactions && nodes.map((n, i) => {
+        const r = results.reactions![i];
+        if (!r) return null;
+        const [rx, ry, rm] = r;
+        const arrowLen = 40;
+        const out: React.ReactNode[] = [];
+        const x = px(n.x), y = py(n.y);
+
+        if (n.fixed_u && Math.abs(rx) > 1e-6) {
+          const dir = rx > 0 ? 1 : -1;
+          out.push(
+            <line key="rrx" x1={x - dir * arrowLen} y1={y} x2={x} y2={y}
+                  stroke="#2563eb" strokeWidth={2} markerEnd="url(#arrow-blue)" />
+          );
+          out.push(
+            <text key="rrx-t" x={x - dir * (arrowLen + 4)} y={y - 5}
+                  fontSize="9" fill="#2563eb"
+                  textAnchor={dir > 0 ? "end" : "start"}>
+              Rx={rx.toFixed(2)}
+            </text>
+          );
+        }
+        if (n.fixed_v && Math.abs(ry) > 1e-6) {
+          const dir = ry > 0 ? 1 : -1;
+          out.push(
+            <line key="rry" x1={x} y1={y + dir * arrowLen} x2={x} y2={y}
+                  stroke="#2563eb" strokeWidth={2} markerEnd="url(#arrow-blue)" />
+          );
+          out.push(
+            <text key="rry-t" x={x + 5} y={y + dir * (arrowLen + 4)}
+                  fontSize="9" fill="#2563eb">
+              Ry={ry.toFixed(2)}
+            </text>
+          );
+        }
+        if ((n.fixed_theta ?? false) && Math.abs(rm) > 1e-6) {
+          out.push(
+            <text key="rrm" x={x - 20} y={y - 14}
+                  fontSize="9" fill="#2563eb">
+              M={rm.toFixed(2)}
+            </text>
+          );
+        }
+        return <g key={"react-" + n.id}>{out}</g>;
       })}
 
       {/* Cargas nodales */}

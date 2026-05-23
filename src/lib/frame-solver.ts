@@ -25,6 +25,16 @@ function localEquivFromGlobalY(w: number, L: number, c: number, s: number,
   return localEquivCombined(wx, wy, L, type, pos, mag2);
 }
 
+function localEquivFromGlobalX(w: number, L: number, c: number, s: number,
+  type: FrameLoad["type"], pos?: number, mag2?: number): number[] {
+  // Carga horizontal global "derecha+", magnitud w. Descomposición a ejes locales:
+  //   w_x_local = w·cosθ   (proyección sobre x' = (c, s))
+  //   w_y_local = -w·sinθ  (proyección sobre y' = (-s, c))
+  const wx = w * c;
+  const wy = -w * s;
+  return localEquivCombined(wx, wy, L, type, pos, mag2);
+}
+
 function localEquivFromLocalPerp(w: number, L: number,
   type: FrameLoad["type"], pos?: number, mag2?: number): number[] {
   // Carga perpendicular al eje del elemento, "abajo+ respecto al elemento"
@@ -125,6 +135,9 @@ function localEquivCombined(wx: number, wy: number, L: number,
 function loadToLocalEquiv(load: FrameLoad, L: number, c: number, s: number): number[] {
   if (load.direction === "local_perp") {
     return localEquivFromLocalPerp(load.magnitude, L, load.type, load.position, load.magnitude2);
+  }
+  if (load.direction === "global_x") {
+    return localEquivFromGlobalX(load.magnitude, L, c, s, load.type, load.position, load.magnitude2);
   }
   return localEquivFromGlobalY(load.magnitude, L, c, s, load.type, load.position, load.magnitude2);
 }

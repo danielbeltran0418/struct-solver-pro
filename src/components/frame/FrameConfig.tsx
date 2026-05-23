@@ -229,6 +229,7 @@ export function FrameConfig({
                               className="bg-transparent border border-slate-200 rounded px-1 py-0.5 text-sm"
                               title="global_y = gravedad vertical | local_perp = perpendicular al eje del elemento">
                         <option value="global_y">↓ Y global</option>
+                        <option value="global_x">→ X global</option>
                         <option value="local_perp">⊥ local</option>
                       </select>
                     </td>
@@ -257,7 +258,7 @@ export function FrameConfig({
           </div>
         )}
         <p className="text-[10px] text-slate-400 mt-2">
-          Magnitud + = abajo (gravedad) para Y global. Puntual/momento: en kN o kN·m.
+          Magnitud + = abajo para ↓ Y global; + = derecha para → X global. Puntual/momento: en kN o kN·m.
           Distribuida (uniforme/trapezoidal): en kN/m.
         </p>
       </Section>

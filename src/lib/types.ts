@@ -129,7 +129,7 @@ export interface FrameLoad {
   id: string;
   elementId: string;
   type: "uniforme" | "puntual" | "trapezoidal" | "momento";
-  direction: "global_y" | "local_perp";
+  direction: "global_y" | "global_x" | "local_perp";
   magnitude: number;
   magnitude2?: number;
   position?: number;
