@@ -1,14 +1,13 @@
 import type { NextConfig } from "next";
 
 const isGhPages = process.env.GITHUB_PAGES === "true";
+const isStaticExport = process.env.STATIC_EXPORT === "true" || isGhPages;
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   images: { unoptimized: true },
-  // Static export only for GitHub Pages; Vercel uses standard Next.js deployment.
+  ...(isStaticExport && { output: "export", trailingSlash: true }),
   ...(isGhPages && {
-    output: "export",
-    trailingSlash: true,
     basePath: "/struct-solver-pro",
     assetPrefix: "/struct-solver-pro/",
   }),
