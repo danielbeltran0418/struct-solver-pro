@@ -12,3 +12,5 @@ __pycache__/
 .vercel
 .DS_Store
 rigidez-lab.html
+standalone-bundle.js
+standalone.css
